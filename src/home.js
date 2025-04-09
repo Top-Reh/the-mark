@@ -6,6 +6,7 @@ import Sneakerslide from './sneakerslide';
 import Pages from './pages';
 import ReviewSlider from './review';
 import { useNavigate } from 'react-router-dom';
+//test git
 
 const Home = () => {
   const navigate = useNavigate();
