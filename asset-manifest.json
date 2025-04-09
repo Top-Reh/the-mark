@@ -1,0 +1,32 @@
+{
+  "files": {
+    "main.css": "/the-mark/static/css/main.a3960367.css",
+    "main.js": "/the-mark/static/js/main.ffabe294.js",
+    "static/js/453.fcc84f1c.chunk.js": "/the-mark/static/js/453.fcc84f1c.chunk.js",
+    "static/media/herobackground.jpg": "/the-mark/static/media/herobackground.8580b41df7768487cb26.jpg",
+    "static/media/bootstrap-icons.woff?": "/the-mark/static/media/bootstrap-icons.39795c0b4513de014cf8.woff",
+    "static/media/airjordan1.png": "/the-mark/static/media/airjordan1.7725ceaf2dee109b1b05.png",
+    "static/media/bootstrap-icons.woff2?": "/the-mark/static/media/bootstrap-icons.b7bcc075b395c14ce8c2.woff2",
+    "static/media/iwishyouwerehere.jpg": "/the-mark/static/media/iwishyouwerehere.9beecc6a0847f305b024.jpg",
+    "static/media/airjordan5.png": "/the-mark/static/media/airjordan5.7f58ab1348727f400169.png",
+    "static/media/airjordan1low.png": "/the-mark/static/media/airjordan1low.a0ab6ffc970ea9f92eee.png",
+    "static/media/montana.jpg": "/the-mark/static/media/montana.9ac45d217790d54c183e.jpg",
+    "static/media/airforce1.png": "/the-mark/static/media/airforce1.b9aa01b2cad7af3c362e.png",
+    "static/media/nrf.jpg": "/the-mark/static/media/nrf.660d6b0a9eee67345009.jpg",
+    "static/media/pla.jpg": "/the-mark/static/media/pla.5a8d1469dfdb62e63d78.jpg",
+    "static/media/ja2.png": "/the-mark/static/media/ja2.3a2f53a99d5d930d82a6.png",
+    "static/media/airmaxdn.png": "/the-mark/static/media/airmaxdn.4a291c578d35ca0ee52d.png",
+    "static/media/slick.svg": "/the-mark/static/media/slick.2630a3e3eab21c607e21.svg",
+    "static/media/slick.eot": "/the-mark/static/media/slick.a4e97f5a2a64f0ab1323.eot",
+    "static/media/slick.ttf": "/the-mark/static/media/slick.c94f7671dcc99dce43e2.ttf",
+    "static/media/slick.woff": "/the-mark/static/media/slick.295183786cd8a1389865.woff",
+    "index.html": "/the-mark/index.html",
+    "main.a3960367.css.map": "/the-mark/static/css/main.a3960367.css.map",
+    "main.ffabe294.js.map": "/the-mark/static/js/main.ffabe294.js.map",
+    "453.fcc84f1c.chunk.js.map": "/the-mark/static/js/453.fcc84f1c.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.a3960367.css",
+    "static/js/main.ffabe294.js"
+  ]
+}
