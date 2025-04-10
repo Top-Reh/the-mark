@@ -1,10 +1,10 @@
-import { useRef,useState, useEffect,useContext, useCallback } from 'react';
+import { useRef,useState, useEffect,useContext, useCallback, useReducer } from 'react';
 import {db} from './firebase';
 import {AuthContext} from './context/AuthContext';
 import { ChatContext } from './context/ChatContext'
 import {v4 as uuid} from "uuid"
 import { useMediaQuery } from "react-responsive";
-import {query,collection,onSnapshot,serverTimestamp, Timestamp, where, getDoc, getDocs, doc, setDoc, updateDoc, arrayUnion, orderBy, limit} from 'firebase/firestore'
+import {query,collection,onSnapshot, where, getDoc, getDocs, doc, setDoc, updateDoc, arrayUnion,} from 'firebase/firestore'
 import styled from 'styled-components';
 import { CartContext } from './context/cartcontext';
 import { useLocation } from 'react-router-dom';
@@ -34,16 +34,47 @@ flex-direction:${(props) => (props.$ismobile  === 'true' ? 'row' : 'column')};
 
 // ChatList Component - Displays a list of chat conversations
 const ChatList = ({setSelectedchat,ismobile,selectedchat,setToid}) => {
-    const [user,setUser] = useState([]);
-    const [err,setErr] = useState(false);
-    const [username,setUserName] = useState('');
     const {currentUser} = useContext(AuthContext);
     const {dispatch} = useContext(ChatContext);
-    const [existUser,setExistUser] = useState([]);
-    const [nousershow,setNousershow] = useState('');
     const {text} = useContext(ChatContext);
     const location = useLocation();
     const { sellerEmail } = location.state || {}; 
+
+    const ACTION = {
+      SET_SEARCH_USER: 'SET_SEARCH_USER',
+      SET_SEARCH_RESULTS: 'SET_SEARCH_RESULTS',
+      SET_SEARCH_ERROR: 'SET_SEARCH_ERROR',
+      SET_EXISTING_CHATS: 'SET_EXISTING_CHATS',
+      SET_ERROR_MESSAGE: 'SET_ERROR_MESSAGE',
+    };
+
+    const initialState = {
+      SearchUser: '',   // user name
+      searchResults: [],    // replaces user
+      searchError: false,   // replaces err
+      existingChats: [],    // replaces existUser
+      errorMessage: '',     // replaces nousershow
+      isLoading: false      // new helpful state
+    };
+
+    const [chatState, chatDispatch] = useReducer(chatReducer, initialState); 
+
+    function chatReducer( state, action) {
+      switch (action.type) {
+        case ACTION.SET_SEARCH_USER:
+          return { ...state, SearchUser: action.payload };
+        case ACTION.SET_SEARCH_RESULTS:
+          return { ...state, searchResults: action.payload };
+        case ACTION.SET_SEARCH_ERROR:
+          return { ...state, searchError: action.payload };
+        case ACTION.SET_EXISTING_CHATS:
+          return { ...state, existingChats: action.payload };
+        case ACTION.SET_ERROR_MESSAGE:
+          return { ...state, errorMessage: action.payload };
+      default:
+        return state;
+      }
+    }
 
     useEffect(() => {
       if (!currentUser) return;
@@ -69,31 +100,30 @@ const ChatList = ({setSelectedchat,ismobile,selectedchat,setToid}) => {
             // }
           }
         });
-        const userList = querySnapshot.docs
-        .map((doc) => doc.data())
-        .filter((user) => user.uid !== currentUser.uid);
-
-        setExistUser(userexist);
-        console.log("exist user ",existUser)
+        // const userList = querySnapshot.docs
+        // .map((doc) => doc.data())
+        // .filter((user) => user.uid !== currentUser.uid);
+        chatDispatch({type: ACTION.SET_EXISTING_CHATS, payload:userexist}); // exist user
       });
       return () => unsubscribe();
-    },[currentUser,text]);
+    },[ currentUser,text ]);
 
     const handleSearch = async(e) => {
       e.preventDefault();
-      if (!username.trim()) return; 
+      if (!chatState.SearchUser.trim()) return; 
     };
 
     useEffect(() => {
-      if (!username.trim()) return;
+      if (!chatState.SearchUser.trim()) return;
       const fetchData = async () => {
+        console.log('search user with state: '+ chatState.SearchUser);
         const q = query(
           collection(db, "users"),
-          where("name", "==", username.toLowerCase())
+          where("name", "==", chatState.SearchUser.toLowerCase())
         );
     
         try {
-          setErr(false);
+          chatDispatch({type: ACTION.SET_SEARCH_ERROR, payload:false}); // resetting error state
           const querySnapshot = await getDocs(q);
           const users = [];
           querySnapshot.forEach((doc) => {
@@ -103,42 +133,37 @@ const ChatList = ({setSelectedchat,ismobile,selectedchat,setToid}) => {
             }
           });
           if (users.length === 0) {
-            setErr(true)
-            setNousershow("User not found");
-
-            // Hide the message after 3 seconds
-            setTimeout(() => {
-              setNousershow("");
-            }, 3000);
+            chatDispatch({type: ACTION.SET_SEARCH_ERROR, payload:true}); // resetting error state
           };
-          setUser(users);
+          chatDispatch({type: ACTION.SET_SEARCH_RESULTS, payload:users}); //setting user
         } catch (error) {
-          setErr(true);
-          setNousershow("User not found");
-
-          // Hide the message after 3 seconds
-          setTimeout(() => {
-            setNousershow("");
-          }, 3000);
+          chatDispatch({type: ACTION.SET_SEARCH_ERROR, payload:true}); // resetting error state
+          console.log('searching user : ',error);
         };
-        if (username === '') {
-          setErr(false)
+        if (chatState.SearchUser === '') {
+          chatDispatch({type: ACTION.SET_SEARCH_ERROR, payload:false}); // resetting error state
         };
-        console.log('search user : '+ user)
       };
     
-      return () => fetchData(); // Call the async function
+      fetchData(); // Call the async function
     
-    }, [username]);
+    }, [chatState.SearchUser]);
 
     const handlekeydown = (e) => {
       if (e.code === 'Enter' && !e.shiftKey) {
         e.preventDefault(); // Prevent form submission
         handleSearch(e);
-        setUserName('')
+        chatDispatch({type: ACTION.SET_SEARCH_USER, payload:""}); // clear search user
+        if (chatState.searchError) {
+          chatDispatch({type: ACTION.SET_ERROR_MESSAGE, payload:"User not found"}); // no user found message
+          // Hide the message after 3 seconds
+          setTimeout(() => {
+            chatDispatch({type: ACTION.SET_ERROR_MESSAGE, payload:" "}); // no user found message
+          }, 3000);
+        }
       };
-      if (username === '') {
-        setErr(false)
+      if (chatState.SearchUser === '') {
+        chatDispatch({type: ACTION.SET_SEARCH_ERROR, payload:false}); // resetting error state
       }
     };
 
@@ -208,6 +233,10 @@ const ChatList = ({setSelectedchat,ismobile,selectedchat,setToid}) => {
       };
     };
 
+    const handleuseronchange = (e) => {
+      chatDispatch({type: ACTION.SET_SEARCH_USER, payload:e.target.value});
+    }
+
   return (
     <MessageList className="chat-list" ismobile={ismobile}>
       <form className="form uniform" onSubmit={handleSearch}>
@@ -221,16 +250,16 @@ const ChatList = ({setSelectedchat,ismobile,selectedchat,setToid}) => {
             placeholder="Search users..."
             className="search-bar input"
             onKeyDown={handlekeydown}
-            value={username}
-            onChange={e => setUserName(e.target.value)}
+            value={chatState.SearchUser}
+            onChange={e => handleuseronchange(e)}
           />
       </form>
       <Usernames className='chatusernames' $ismobile={!ismobile}>
           {
-            err ? (<span className='text-black'>{nousershow}</span>) : (
+            chatState.searchError ? (<span className='text-black'>{chatState.errorMessage}</span>) : (
              <>
                {
-                user.length > 0 && user?.map((item,index) => (
+                chatState.searchResults.length > 0 && chatState.searchResults?.map((item,index) => (
                   <SearchUser key={index} selectedchat={selectedchat} $ismobile={!ismobile} onClick={() => {handleSelect(item)}} className='usersearching rounded-md w-full bg-gray-100 py-5 px-5 mb-3 flex justify-center align-middle gap-3'>
                     <img src={item.photoURL} className="avatar w-12 h-12 rounded-full" alt={item.name}/>
                     <div className='chat-title' style={{ display: !ismobile  === 'true' ? 'none' : 'block' }}>
@@ -243,7 +272,7 @@ const ChatList = ({setSelectedchat,ismobile,selectedchat,setToid}) => {
             )
           }
           {
-            existUser && existUser.map((item,index) => (
+            chatState.existingChats && chatState.existingChats.map((item,index) => (
               <ExistUser key={index} selectedchat={selectedchat} $ismobile={!ismobile} onClick={() => handleSelect(item)} className='usersearching rounded-md w-full  py-5 px-5 mb-3 flex justify-center align-middle gap-3'>
                 <img src={item.photoURL} className="avatar w-12 h-12 rounded-full bg-red-400" alt={item.name}/>
                 <div className='chat-title' style={{ display: !ismobile  === 'true' ? 'none' : 'block' }}>
@@ -323,15 +352,15 @@ const ChatWindow = ({selectedchat,ismobile,toid}) => {
       if (!inputMessage.trim()) return;
       setInputMessage('');
 
-      const messageData = {
-        id: uuid(),
-        name: currentUser.displayName || 'User',
-        photo: currentUser.photoURL,
-        text: inputMessage,
-        senderId: currentUser?.uid,
-        toid,
-        date: new Date().toLocaleTimeString(),
-      };
+      // const messageData = {
+      //   id: uuid(),
+      //   name: currentUser.displayName || 'User',
+      //   photo: currentUser.photoURL,
+      //   text: inputMessage,
+      //   senderId: currentUser?.uid,
+      //   toid,
+      //   date: new Date().toLocaleTimeString(),
+      // };
 
       // dispatch({ 
       //   type: "SEND_MESSAGE", 
