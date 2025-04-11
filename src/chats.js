@@ -277,7 +277,9 @@ const ChatList = ({setSelectedchat,ismobile,selectedchat,setToid}) => {
                 <img src={item.photoURL} className="avatar w-12 h-12 rounded-full bg-red-400" alt={item.name}/>
                 <div className='chat-title' style={{ display: !ismobile  === 'true' ? 'none' : 'block' }}>
                   <span className="chat-name capitalize font-bold" >{item.name}</span>
-                  <p >{item.timestamp}</p>
+                  <p >{item.timestamp?.seconds
+                  ? new Date(item.timestamp.seconds * 1000).toLocaleTimeString()
+                  : item.timestamp}</p>
                 </div>
               </ExistUser>
             ))
