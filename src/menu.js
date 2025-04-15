@@ -432,11 +432,6 @@ const Menu = () => {
         <div className='menulist'>
           <Link to="/shop"><h5>Shop</h5></Link>
           <Link to="/brands"><h5>Brands</h5></Link>
-          <Link onMouseEnter={() => {setHovermenu(newDropdown);setScrollBg('white')}}><h5>New</h5></Link>
-          <Link onMouseEnter={() => {setHovermenu(clothesDropdown);setScrollBg('white');}}><h5>Clothes</h5></Link>
-          <Link onMouseEnter={() => {setHovermenu(sportDropdown);setScrollBg('white');}}><h5>Sport</h5></Link>
-          <Link onMouseEnter={() => {setHovermenu(cosmeticsDropdown);setScrollBg('white');}}><h5>Cosmetic</h5></Link>
-          <Link onMouseEnter={() => {setHovermenu(salesDropdown);setScrollBg('white');}}><h5>Sales</h5></Link>
         </div>
         <div className='menufunctions'>
           <input type='search'></input>

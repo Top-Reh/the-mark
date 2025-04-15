@@ -28,7 +28,7 @@ const Pages = () => {
     <div className='pageslogo'>
       <div className="viewmoreproducts pagesviewmore">
           <h1>Pages you can find here</h1>
-          <Link to="#" style={{color:"black"}}>View More<i className="bi bi-arrow-right" style={{marginLeft:"10px"}}></i></Link>
+          <Link to="/brands" style={{color:"black"}}>View More<i className="bi bi-arrow-right" style={{marginLeft:"10px"}}></i></Link>
       </div>
       <div className='pageslogos'>
       {
