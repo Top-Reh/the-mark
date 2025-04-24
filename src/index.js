@@ -18,6 +18,7 @@ import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import Brands from './brands';
 import Brandspage from './brandspage';
+import Admindashboard from './dashboards/admindashboard';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -41,6 +42,7 @@ root.render(
                 <Route path='/shop' element={<Shop/>} />
                 <Route path='/brands' element={<Brands/>} />
                 <Route path='/brandspage' element={<Brandspage/>} />
+                <Route path='/admindashboard' element={<Admindashboard/>} />
               </Routes>
           </Router>
         </React.StrictMode>
