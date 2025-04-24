@@ -19,6 +19,7 @@ import "slick-carousel/slick/slick-theme.css";
 import Brands from './brands';
 import Brandspage from './brandspage';
 import Admindashboard from './dashboards/admindashboard';
+//index
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
