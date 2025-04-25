@@ -1,16 +1,50 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Loginasadmin from "./components/loginasadmin";
 import Loginbtn from "./components/loginbtn";
-import Userpf from "./components/userpf";
+import Userpf from "./dashboards/userpf";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { auth } from "./firebase";
+import { auth, db } from "./firebase";
 import Logoutbtn from "./components/logoutbtn";
+import { use } from "react";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import Admindashboard from "./dashboards/admindashboard";
 
 export default function Profile() {
   const [user, loading, error] = useAuthState(auth); // Use Firebase auth state
   const [adminlogin, setAdminlogin] = useState(false); // State to manage admin login
   const [googlelogin, setGooglelogin] = useState(false); // State to manage Google login
   const [businessType, setBusinessType] = useState(""); // State to manage business type
+  const [userData, setUserData] = useState(null); // State to manage user data
+  const [adminData, setAdminData] = useState(null); // State to manage admin data
+  const [whoLogin, setWhoLogin] = useState(""); // State to manage who logged in
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (user) {
+        const q = query(collection(db, "admins"), where("uid", "==", user.uid));
+        const querySnapshot = await getDocs(q);
+
+        const b = query(collection(db, "users"), where("uid", "==", user.uid));
+        const userdatasnapshot = await getDocs(b);
+    
+        if (!querySnapshot.empty) {
+          const admindata = querySnapshot.docs.map(doc => doc.data());
+          console.log('admindatasnapshot',admindata[0]);
+          setAdminData(admindata[0]);
+          setWhoLogin("admin");
+        } 
+        
+        if (!userdatasnapshot.empty) {
+          const userdata = userdatasnapshot.docs.map(doc => doc.data());
+          console.log('userdatasnapshot',userdata[0]);
+          setUserData(userdata[0]);
+          setWhoLogin("user");
+        }
+      } else return
+    }
+  
+    fetchData();
+  }, [user]);  
 
   const handleselectbusiness = (e) => {
     const business = e.target.innerText;
@@ -18,16 +52,20 @@ export default function Profile() {
     console.log(business);
   };
 
+  console.log("User as user:", user); // Log the user object to see its properties
+
 
   return (
     <main>
       {error && <p>Authentication Error!</p>}
       {loading && <p>Loading...</p>}
       {user ? (
-        <div className="loginpage">
-          <Userpf />
-        </div>
-      ) : (
+          whoLogin  === "user" ? (
+            <Userpf />
+          ) : (
+            <Admindashboard />
+          )
+        ) : (
         <div className="loginpage">
           <div className="loginuser">
             <h2>Welcome Back, Shopper!</h2>

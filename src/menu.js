@@ -439,7 +439,6 @@ const Menu = () => {
           <Ilink to='/chats'><i className="bi bi-chat-dots" onClick={() => setOpenNoti(false)}></i></Ilink>
           <i className="bi bi-bell" onClick={() => {setOpenNoti(pre => !pre);setalertNoti(false)}}><span className={alertnoti ? 'alertnoti' : 'noalertnoti'}></span></i>
           <Ilink to='/profile'><i className="bi bi-person" onClick={() => setOpenNoti(false)}></i></Ilink>
-          <Ilink to='/admindashboard'><i className="bi bi-person" onClick={() => setOpenNoti(false)}></i></Ilink>
         </div>
       </div> 
       

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import UploadProduct from '../ProductUpload';
+import Logoutbtn from '../components/logoutbtn';
 
 const Admindashboard = () => {
     const [openTab,setOpenTab] = useState('Dashboard')
@@ -618,18 +619,7 @@ const Payments = () => {
 
 const Settings = () => {
     return (
-        <div className='admin_settings_container'>
-            <h1 className='admin_settings_header'>Settings</h1>
-            <div className='admin_settings_table'>
-                <h1>Settings</h1>
-                <ul className='admin_settings_table_header'>
-                    <li>Account</li>
-                    <li>Security</li>
-                    <li>Notifications</li>
-                    <li>Privacy</li>
-                </ul>
-            </div>
-        </div>
+        <Logoutbtn/>
     )
 }
 
