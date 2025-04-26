@@ -17,6 +17,7 @@ export default function Profile() {
   const [userData, setUserData] = useState(null); // State to manage user data
   const [adminData, setAdminData] = useState(null); // State to manage admin data
   const [whoLogin, setWhoLogin] = useState(""); // State to manage who logged in
+  //profile
 
   useEffect(() => {
     const fetchData = async () => {
