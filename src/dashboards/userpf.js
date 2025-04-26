@@ -1,25 +1,45 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Logoutbtn from "../components/logoutbtn";
-import { auth } from "../firebase";
+import { auth, db } from "../firebase";
 import {useAuthState} from 'react-firebase-hooks/auth'
 import { Link } from 'react-router-dom';
 import ProductUpload from '../ProductUpload';
 import Userprofilehome from './userprofilehome';
 import { ChevronDown } from 'lucide-react';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 
 const Userpf = () => {
   const [user] = useAuthState(auth);
   const [opentab,setOpenTab] = useState('profile');
   const [borderactive,setBorderActive] = useState(0);
+  const [userData, setUserData] = useState(null); // State to manage user data
+
+    useEffect(() => {
+      const fetchData = async () => {
+        if (user) {
+          const b = query(collection(db, "users"), where("uid", "==", user.uid));
+          const userdatasnapshot = await getDocs(b);
+          
+          if (!userdatasnapshot.empty) {
+            const userdata = userdatasnapshot.docs.map(doc => doc.data());
+            console.log('userdatasnapshot',userdata[0]);
+            setUserData(userdata[0]);
+          }
+        } else return
+      }
+    
+      fetchData();
+    }, [user]); 
+
    return (
     user ? (
         <div className="profilecontainer">
             <div className="usersetting">
               <div className="user">
-              {user?.photoURL && <img src={user.photoURL} alt={user.displayName}></img>}
+              {userData?.photoURL && <img src={userData.photoURL} alt={userData.displayName}></img>}
                 <div>
-                  <h2>{user?.displayName}</h2>
-                  <p>{user?.email}</p>
+                  <h2>{userData?.displayName}</h2>
+                  <p>{userData?.email}</p>
                 </div>
               </div>
               <form className="form uniform">
