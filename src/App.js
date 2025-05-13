@@ -8,6 +8,7 @@ import "slick-carousel/slick/slick-theme.css";
 import { AuthContextProvider } from './context/AuthContext';
 import { ChatContextProvider } from './context/ChatContext';
 import { CartProvider } from './context/cartcontext';
+//app js
 
 function App() {
   const [hoverimg, setHoverImg] = useState(null);
