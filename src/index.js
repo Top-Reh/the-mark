@@ -14,6 +14,7 @@ import Home from './home';
 import Shop from './shop';
 import { AuthContextProvider } from './context/AuthContext';
 import { ChatContextProvider } from './context/ChatContext';
+import { NotificationProvider } from './context/NotificationContext';
 import "slick-carousel/slick/slick.css"; 
 import "slick-carousel/slick/slick-theme.css";
 import Brands from './brands';
@@ -31,8 +32,9 @@ root.render(
   <AuthContextProvider>
     <ChatContextProvider>
       <CartProvider>
-        <React.StrictMode>
-          <Router>
+        <NotificationProvider>
+          <React.StrictMode>
+            <Router>
               <Menu />
               <Routes>
                 <Route path="/" element={<Home />} />
@@ -45,8 +47,9 @@ root.render(
                 <Route path='/brandspage' element={<Brandspage/>} />
                 <Route path='/admindashboard' element={<Admindashboard/>} />
               </Routes>
-          </Router>
-        </React.StrictMode>
+            </Router>
+          </React.StrictMode>
+        </NotificationProvider>
       </CartProvider>
     </ChatContextProvider>
   </AuthContextProvider>

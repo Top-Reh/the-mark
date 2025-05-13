@@ -197,12 +197,64 @@ const Products = () => {
 }
 
 const Orders = () => {
+    const [orders, setOrders] = useState([
+        {
+            id: 1,
+            name: 'Jame',
+            address: 'Mandalay, Myanmar',
+            order: 12,
+            total: 120,
+            status: 'Accepted',
+            img: 'https://i.pinimg.com/474x/68/76/66/6876669bbdb06208d8807acf36596cfd.jpg',
+            date: '4/21/2025',
+            product: 'Shirt',
+        },
+        {
+            id: 2,
+            name: 'Jame',
+            address: 'Mandalay, Myanmar',
+            order: 12,
+            total: 120,
+            status: 'Pending',
+            img: 'https://i.pinimg.com/474x/68/76/66/6876669bbdb06208d8807acf36596cfd.jpg',
+            date: '4/21/2025',
+            product: 'Shirt',
+        },
+        {
+            id: 3,
+            name: 'Jame',
+            address: 'Mandalay, Myanmar',
+            order: 12,
+            total: 120,
+            status: 'Canceled',
+            img: 'https://i.pinimg.com/474x/68/76/66/6876669bbdb06208d8807acf36596cfd.jpg',
+            date: '4/21/2025',
+            product: 'Shirt',
+        },
+    ]);
     const ordertabs = ['All orders', 'Complete', 'Pending', 'Cancel'];
     const [activeOrderTab, setActiveOrderTab] = useState('All orders');
     const handleDateFilter = (dateRange) => {
         console.log("Selected date filter:", dateRange);
         // Apply filter logic here based on `dateRange`
       };
+
+      const handleStatusChange = (id, newStatus) => {
+        setOrders(prev =>
+            prev.map(c =>
+                c.id === id ? { ...c, status: newStatus } : c
+            )
+        );
+    };
+
+    const getStatusStyle = (status) => {
+        if (status === 'Accepted') return 'text-green-600 bg-green-100';
+        if (status === 'Pending') return 'text-yellow-600 bg-yellow-100';
+        if (status === 'Canceled') return 'text-red-600 bg-red-100';
+        return '';
+    };
+
+
     return (
         <div className='admin_orders_container'>
             <div className='orders_table_header'>
@@ -231,45 +283,31 @@ const Orders = () => {
                 </ul>
             </div>
             <div className='admin_orders_table'>
-                <ul className='admin_orders_table_header'>
-                    <li>#</li>
-                    <li>Order ID</li>  
-                    <li>Product Name</li>
-                    <li>Address</li>
-                    <li>Date</li>
-                    <li>Price</li>
-                    <li>Status</li>
-                </ul>
-                <ul>
-                    <li>1</li>
-                    <li>#1234567</li>  
-                    <li><img className='w-8 h-8 object-cover object-center rounded-sm' src='https://i.pinimg.com/474x/8c/2b/4b/8c2b4b428911a7b2a4560ddbf9b51e85.jpg' alt='shirt'></img>Shirt</li>
-                    <li>351 Elgin St .Celina</li>
-                    <li>4/21/2025</li>
-                    <li>$34452</li>
-                    <li><p  className='text-green-600 bg-green-100 p-2 px-3 rounded-3xl'>
-                    Complete </p></li>
-                </ul>
-                <ul>
-                    <li>2</li>
-                    <li>#1234567</li>  
-                    <li><img className='w-8 h-8 object-cover object-center rounded-sm' src='https://i.pinimg.com/474x/8c/2b/4b/8c2b4b428911a7b2a4560ddbf9b51e85.jpg' alt='shirt'></img>Shirt</li>
-                    <li>351 Elgin St .Celina</li>
-                    <li>4/21/2025</li>
-                    <li>$34452</li>
-                    <li><p  className='text-yellow-600 bg-yellow-100 p-2 px-3 rounded-3xl'>
-                    Pending </p></li>
-                </ul>
-                <ul>
-                    <li>3</li>
-                    <li>#1234567</li>  
-                    <li><img className='w-8 h-8 object-cover object-center rounded-sm' src='https://i.pinimg.com/474x/8c/2b/4b/8c2b4b428911a7b2a4560ddbf9b51e85.jpg' alt='shirt'></img>Shirt</li>
-                    <li>351 Elgin St .Celina</li>
-                    <li>4/21/2025</li>
-                    <li>$34452</li>
-                    <li><p  className='text-red-600 bg-red-100 p-2 px-3 rounded-3xl'>
-                    Cancled </p></li>
-                </ul>
+                {
+                    orders.map((order,index) => (
+                        <ul className='admin_orders' key={index}>
+                            <li>{index}</li>
+                            <li>#{order.id}</li>  
+                            <li><img className='w-8 h-8 object-cover object-center rounded-sm' src={order.img} alt='shirt'></img>{order.product}</li>
+                            <li>{order.address}</li>
+                            <li>{order.date}</li>
+                            <li>${order.total}</li>
+                            <li>
+                                <select
+                                    value={order.status}
+                                    onChange={(e) =>
+                                        handleStatusChange(order.id, e.target.value)
+                                    }
+                                    className={`p-2 px-3 rounded-3xl outline-none border-none ${getStatusStyle(order.status)}`}
+                                >
+                                    <option value="Accepted" >Accepted</option>
+                                    <option value="Pending" >Pending</option>
+                                    <option value="Canceled" >Canceled</option>
+                                </select>
+                            </li>
+                        </ul>
+                    ))
+                }
             </div>
         </div>
     )
@@ -322,92 +360,100 @@ const dateOptions = [
     );
   };
 
-const Customers = () => {
-    return (
-        <div className='admin_customers_container flex flex-col gap-5'>
-            <div className='dashboard_header'>
-                <div className='dashboard_header_blog'>
-                    <div>
-                        <i className="bi bi-box-seam"></i>
-                        <i className="bi bi-three-dots-vertical"></i>
-                    </div>
-                    <p>accepted</p>
-                    <h1>$12,145</h1>
-                </div>
-                <div className='dashboard_header_blog'>
-                    <div>
-                        <i className="bi bi-cart2"></i>
-                        <i className="bi bi-three-dots-vertical"></i>
-                    </div>
-                    <p>pending</p>
-                    <h1>$12,145</h1>
-                </div>
-                <div className='dashboard_header_blog'>
-                    <div>
-                        <i className="bi bi-reception-4"></i>
-                        <i className="bi bi-three-dots-vertical"></i>
-                    </div>
-                    <p>Cancel</p>
-                    <h1>$24,234</h1>
-                </div>
-                <div className='dashboard_header_blog'>
-                    <div>
-                        <i className="bi bi-bounding-box-circles"></i>
-                        <i className="bi bi-three-dots-vertical"></i>
-                    </div>
-                    <p>Total orders</p>
-                    <h1>$14,144</h1>
-                </div>
-            </div>
-            <div className='dashboard_table'>
-                <div className='dashboard_table_header'>
-                    <h1>Customers</h1>
-                    <div className='dashboard_table_buttons'>
-                        <button ><i className="bi bi-funnel"></i>Filter</button>
-                        <button >See All</button>
-                    </div>
-                </div>
-                <div className='dashboard_products_table dashboard_customers_table'>
-                    <ul className='dashboard_products_table_header
-                    '>
-                      <li><i className="bi bi-square"></i>Customers</li>  
-                      <li>Status</li>
-                      <li>Location</li>
-                      <li>Orders</li>
-                      <li>Total Amount</li>
-                      <li>Action</li>
-                    </ul>
-                    <ul className='dashboard_products'>
-                        <li><i className="bi bi-square"></i><img src='https://i.pinimg.com/474x/68/76/66/6876669bbdb06208d8807acf36596cfd.jpg' alt='imag'></img>Jame</li>  
-                        <li><p  className='text-green-600 bg-green-100 p-2 px-3 rounded-3xl'>
-                    Accepted </p></li>
-                        <li>Mandalay,Myanmar</li>
-                        <li>12 Orders</li>
-                        <li>$120.00</li>
-                        <li><i className="bi bi-three-dots-vertical"></i></li>
-                    </ul>
-                    <ul className='dashboard_products'>
-                        <li><i className="bi bi-square"></i><img src='https://i.pinimg.com/474x/68/76/66/6876669bbdb06208d8807acf36596cfd.jpg' alt='imag'></img>Jame</li>  
-                        <li><p  className='text-yellow-600 bg-yellow-100 p-2 px-3 rounded-3xl'>Pending </p></li>
-                        <li>Mandalay,Myanmar</li>
-                        <li>12 Orders</li>
-                        <li>$120.00</li>
-                        <li><i className="bi bi-three-dots-vertical"></i></li>
-                    </ul>
-                    <ul className='dashboard_products'>
-                        <li><i className="bi bi-square"></i><img src='https://i.pinimg.com/474x/68/76/66/6876669bbdb06208d8807acf36596cfd.jpg' alt='imag'></img>Jame</li>  
-                        <li><p  className='text-red-600 bg-red-100 p-2 px-3 rounded-3xl'>
-                    Cancled </p></li>
-                        <li>Mandalay,Myanmar</li>
-                        <li>12 Orders</li>
-                        <li>$120.00</li>
-                        <li><i className="bi bi-three-dots-vertical"></i></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    )
-};
+  const Customers = () => {
+      const [customers, setCustomers] = useState([
+          {
+              id: 1,
+              name: 'Jame',
+              location: 'Mandalay, Myanmar',
+              orders: 12,
+              total: 120,
+              status: 'Accepted',
+              img: 'https://i.pinimg.com/474x/68/76/66/6876669bbdb06208d8807acf36596cfd.jpg',
+          },
+          {
+              id: 2,
+              name: 'Jame',
+              location: 'Mandalay, Myanmar',
+              orders: 12,
+              total: 120,
+              status: 'Pending',
+              img: 'https://i.pinimg.com/474x/68/76/66/6876669bbdb06208d8807acf36596cfd.jpg',
+          },
+          {
+              id: 3,
+              name: 'Jame',
+              location: 'Mandalay, Myanmar',
+              orders: 12,
+              total: 120,
+              status: 'Canceled',
+              img: 'https://i.pinimg.com/474x/68/76/66/6876669bbdb06208d8807acf36596cfd.jpg',
+          },
+      ]);
+  
+      const handleStatusChange = (id, newStatus) => {
+          setCustomers(prev =>
+              prev.map(c =>
+                  c.id === id ? { ...c, status: newStatus } : c
+              )
+          );
+      };
+  
+      const getStatusStyle = (status) => {
+          if (status === 'Accepted') return 'text-green-600 bg-green-100';
+          if (status === 'Pending') return 'text-yellow-600 bg-yellow-100';
+          if (status === 'Canceled') return 'text-red-600 bg-red-100';
+          return '';
+      };
+  
+      return (
+          <div className='admin_customers_container flex flex-col gap-5'>
+              {/* dashboard_header can remain unchanged */}
+              <div className='dashboard_table'>
+                  <div className='dashboard_table_header'>
+                      <h1>Customers</h1>
+                      <div className='dashboard_table_buttons'>
+                          <button><i className="bi bi-funnel"></i>Filter</button>
+                          <button>See All</button>
+                      </div>
+                  </div>
+                  <div className='dashboard_products_table dashboard_customers_table'>
+                      <ul className='dashboard_products_table_header'>
+                          <li><i className="bi bi-square"></i>Customers</li>
+                          <li>Status</li>
+                          <li>Location</li>
+                          <li>Orders</li>
+                          <li>Total Amount</li>
+                          <li>Action</li>
+                      </ul>
+                      {customers.map((customer) => (
+                          <ul className='dashboard_products' key={customer.id}>
+                              <li><i className="bi bi-square"></i>
+                                  <img src={customer.img} alt='imag' />{customer.name}</li>
+                              <li>
+                                  <select
+                                      value={customer.status}
+                                      onChange={(e) =>
+                                          handleStatusChange(customer.id, e.target.value)
+                                      }
+                                      className={`p-2 px-3 rounded-3xl outline-none ${getStatusStyle(customer.status)}`}
+                                  >
+                                      <option value="Accepted">Accepted</option>
+                                      <option value="Pending">Pending</option>
+                                      <option value="Canceled">Canceled</option>
+                                  </select>
+                              </li>
+                              <li>{customer.location}</li>
+                              <li>{customer.orders} Orders</li>
+                              <li>${customer.total.toFixed(2)}</li>
+                              <li><i className="bi bi-three-dots-vertical"></i></li>
+                          </ul>
+                      ))}
+                  </div>
+              </div>
+          </div>
+      );
+  };
 
 const Analytics = () => {
     return (

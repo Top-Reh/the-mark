@@ -1,7 +1,8 @@
-import React, { useState,useContext, useEffect, useRef } from 'react';
+import React, { useState, useContext, useEffect, useRef } from 'react';
 import { CartContext } from './context/cartcontext';
+import { NotificationContext } from './context/NotificationContext';
 import styled from "styled-components";
-import {Link} from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { AuthContext } from './context/AuthContext';
 import { db } from "./firebase";
 import { collection, addDoc, serverTimestamp, query, where, orderBy, onSnapshot, updateDoc, doc, getDoc, getDocs } from "firebase/firestore";
@@ -326,27 +327,20 @@ const Ilink = styled(Link)`
 `;
 
 const Menu = () => {
-  const { notimsg} = useContext(CartContext);
-  const [hovermenu, setHovermenu] = useState([]); // Default to an empty array
-  const [scrollbg,setScrollBg] = useState('transparent');
-  const [openNoti,setOpenNoti] = useState(false);
-  const {currentUser} = useContext(AuthContext);
-  const [alertnoti,setalertNoti] = useState(false);
-  const [viewallnoti,setViewallNoti] = useState(4);
+  const { notimsg } = useContext(CartContext);
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useContext(NotificationContext);
+  const [hovermenu, setHovermenu] = useState([]);
+  const [scrollbg, setScrollBg] = useState('transparent');
+  const [openNoti, setOpenNoti] = useState(false);
+  const { currentUser } = useContext(AuthContext);
+  const [alertnoti, setalertNoti] = useState(false);
+  const [viewallnoti, setViewallNoti] = useState(4);
   const scrollref = useRef();
-  const [notification,setNotification] = useState(null);
-  const [messagenoti,setMessageNoti] = useState(null);
 
   const Menuheader = styled.div`
-  background-color:${scrollbg};
-  transition: all 2s ease;
+    background-color: ${scrollbg};
+    transition: all 2s ease;
   `;
-
-  // const formatTimestamp = (timestamp) => {
-  //   if (!timestamp || !timestamp.seconds) return "Unknown time"; // Handle missing timestamp
-  //   const date = new Date(timestamp.seconds * 1000);
-  //   return date.toLocaleString(); // Format to readable date
-  // };
 
   useEffect(() => {
     return () => setalertNoti(true);
@@ -355,12 +349,12 @@ const Menu = () => {
   const changeonscroll = () => {
     if (window.scrollY >= 90) {
       setScrollBg('white');
-    }else {
+    } else {
       setScrollBg('transparent');
     }
   };
 
-  window.addEventListener('scroll',changeonscroll);
+  window.addEventListener('scroll', changeonscroll);
 
   const viewall = () => {
     setViewallNoti(pre => pre + 4);
@@ -369,66 +363,17 @@ const Menu = () => {
     }, 100);
   };
 
-  useEffect(() => {
-    if (!currentUser) return;
-  
-    let isMounted = true;
-    const cartdata = async () => {
-      const productRef = doc(db, "users",currentUser.uid);
-      const productSnap = await getDoc(productRef);
-      if (isMounted && productSnap.exists()) {
-        const orderedProducts = productSnap.data().orderedProducts || [];
-        setNotification(orderedProducts);
-      };
-      const chatsRef = collection(db, "chats");
-      const q = query(chatsRef, where("toid", "==", currentUser.uid)); // Filter for chats where `toid` equals the current user's `uid`
-      const querySnapshot = await getDocs(q);
-
-      if (!querySnapshot.empty) {
-        querySnapshot.forEach((chatDoc) => {
-          const chatData = chatDoc.data();
-          setMessageNoti(chatData)
-        });
-      } else {
-        console.log("No chats found with `toid` equal to currentUser.uid.");
-      }
-
+  const handleNotificationClick = (notification) => {
+    if (!notification.read) {
+      markAsRead(notification.id);
     }
-      cartdata();
-      return () => {
-        isMounted = false;
-      };
-    }, [viewallnoti,openNoti,currentUser?.uid]);
-  
-
-  // useEffect(() => {
-  //   if (currentUser) {
-  //     const q = query(
-  //       collection(db, "notifications"),
-  //       where("userId", "==", currentUser.uid),
-  //       orderBy("time", "desc")
-  //     );
-  
-  //     const unsubscribe = onSnapshot(q, (snapshot) => {
-  //       setNotifications(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-  //     });
-  
-  //     return () => unsubscribe();
-  //   }
-  // }, [currentUser]);
-
-  // const markAsRead = async (id) => {
-  //   await updateDoc(doc(db, "notifications", id), { read: true });
-  // };
-
-  // onClick={() => markAsRead(notif.id)}
-  
+    setOpenNoti(false);
+  };
 
   return (
-    <Menuheader
-     className='mainmenu'>
+    <Menuheader className='mainmenu'>
       <div className='menu'>
-        <Link to="/"><h1>Logo</h1></Link> 
+        <Link to="/"><h1>Logo</h1></Link>
         <div className='menulist'>
           <Link to="/shop"><h5>Shop</h5></Link>
           <Link to="/brands"><h5>Brands</h5></Link>
@@ -437,65 +382,51 @@ const Menu = () => {
           <input type='search'></input>
           <Ilink to='/cart'><i className="bi bi-cart" onClick={() => setOpenNoti(false)}></i></Ilink>
           <Ilink to='/chats'><i className="bi bi-chat-dots" onClick={() => setOpenNoti(false)}></i></Ilink>
-          <i className="bi bi-bell" onClick={() => {setOpenNoti(pre => !pre);setalertNoti(false)}}><span className={alertnoti ? 'alertnoti' : 'noalertnoti'}></span></i>
+          <i className="bi bi-bell" onClick={() => { setOpenNoti(pre => !pre); setalertNoti(false) }}>
+            {unreadCount > 0 && <span className='alertnoti'></span>}
+          </i>
           <Ilink to='/profile'><i className="bi bi-person" onClick={() => setOpenNoti(false)}></i></Ilink>
         </div>
-      </div> 
-      
-      {/* Dropdown Menu */}
-      {/* {hovermenu.length > 0 && (
-        <div className='dropdownmenu' onMouseLeave={() => {setHovermenu([]);changeonscroll()}}>
-          {hovermenu.map((dropdown, index) => (
-            <div key={index} className='dropproductsdown'>
-              <h4>{dropdown.category}</h4>
-              {dropdown.items.map((text, idx) => (
-                <p key={idx}>{text}</p> 
-              ))}
-            </div>
-          ))}
-        </div>
-      )} */}
-      {
-        openNoti && (notification || messagenoti ? (
-          <div className='notificationscontainer'>
-            <i className="bi bi-caret-up-fill"></i>
-            <div className='notifications'>
-              {notification && notification.map((notif,index) => (
-                <div className='onenoti' key={index}>
-                  <img src={notif.images[0]} alt='name' />
-                  <div className='notitext'> 
-                    <h4>{notif.name}</h4>
-                    <p>You added to cart {notif.name}</p>
-                    <p>{notif.time}</p>
-                  </div>
-                </div>
-              ))}
-              {messagenoti && messagenoti.map((notif,index) => (
-                  <div className='onenoti' key={index}>
-                    <img src={notif.photo} alt='name' />
-                    <div className='notitext'> 
-                      <h4>{notif.name}</h4>
-                      <p>You added to cart {notif.name}</p>
-                      <p>{notif.date}</p>
+      </div>
+
+      {openNoti && (
+        <div className='notificationscontainer'>
+          <i className="bi bi-caret-up-fill"></i>
+          <div className='notifications'>
+            {notifications.length === 0 ? (
+              <div className='notiviewall'>No notifications</div>
+            ) : (
+              <>
+                {notifications.slice(0, viewallnoti).map((notification) => (
+                  <div
+                    key={notification.id}
+                    className={`onenoti ${!notification.read ? 'activenoti' : ''}`}
+                    onClick={() => handleNotificationClick(notification)}
+                  >
+                    {notification.type === 'chat' ? (
+                      <img src={notification.senderPhoto} alt={notification.senderName} />
+                    ) : (
+                      <img src={notification.productImage || '/default-product.png'} alt={notification.productName} />
+                    )}
+                    <div className='notitext'>
+                      <h4>{notification.type === 'chat' ? notification.senderName : notification.productName}</h4>
+                      <p>{notification.text}</p>
+                      <p>{notification.timestamp}</p>
                     </div>
                   </div>
                 ))}
-              <div className='notiviewall' onClick={viewall} ref={scrollref}>View More</div>
-            </div>
+                {notifications.length > viewallnoti && (
+                  <div className='notiviewall' onClick={viewall} ref={scrollref}>
+                    View More
+                  </div>
+                )}
+              </>
+            )}
           </div>
-        ) : (
-          <div className='notificationscontainer'>
-            <i className="bi bi-caret-up-fill caretnonoti"></i>
-            <div className='notifications'>
-              <div className='notiviewall'>No notification</div>
-            </div>
-          </div>
-        ))
-      }
-
-      
+        </div>
+      )}
     </Menuheader>
-  );           
-}
+  );
+};
 
-export default Menu
+export default Menu;

@@ -1,153 +1,120 @@
-import React, { useState,useContext, useEffect, useRef } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { CartContext } from '../context/cartcontext';
 import { AuthContext } from '../context/AuthContext';
+import { NotificationContext } from '../context/NotificationContext';
 import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
 
 const Userprofilehome = () => {
-  const { notimsg} = useContext(CartContext);
-    const {currentUser} = useContext(AuthContext);
-  const [notification,setNotification] = useState(null);
-  const [messagenoti,setMessageNoti] = useState(null);
-  
-  // useEffect(() => {
-  //   async function fetchData (params) {
-  //     const docRef = doc(db, "notifications", currentUser.uid);
-  //     const docSnap = await getDoc(docRef);
+  const { currentUser } = useContext(AuthContext);
+  const { notifications } = useContext(NotificationContext);
+  const [orders, setOrders] = useState([]);
+  const [cartItems, setCartItems] = useState([]);
+  const [messages, setMessages] = useState([]);
 
-  //     if (docSnap.exists()) {
-  //       // Extract messages and cart
-  //       const data = docSnap.data();
-  //       setNotification(data);
-  //       return data; // Return the data if needed
-  //     }
-      
-  //   }
-  //   fetchData();
-  // }, [notimsg]);
   useEffect(() => {
     if (!currentUser?.uid) return;
-    const cartdata = async () => {
-      const productRef = doc(db, "users",currentUser.uid);
+
+    // Filter notifications by type
+    const orderNotifications = notifications.filter(n => n.type === 'order');
+    const cartNotifications = notifications.filter(n => n.type === 'cart');
+    const messageNotifications = notifications.filter(n => n.type === 'chat');
+
+    setOrders(orderNotifications);
+    setCartItems(cartNotifications);
+    setMessages(messageNotifications);
+
+    // Fetch additional order data
+    const fetchOrderData = async () => {
+      const productRef = doc(db, "users", currentUser.uid);
       const productSnap = await getDoc(productRef);
       if (productSnap.exists()) {
         const orderedProducts = productSnap.data().orderedProducts || [];
-        setNotification(orderedProducts);
-      };
-      const uploadproductRef = doc(db, "products",currentUser.uid);
-      const uploadproductSnap = await getDoc(uploadproductRef);
-      if (uploadproductSnap.exists()) {
-        const uploadedProducts = uploadproductSnap.data() || [];
-        setNotification(prev => [...prev, ...uploadedProducts]);
-      };
-      const chatsRef = collection(db, "chats");
-      const q = query(chatsRef, where("toid", "==", currentUser.uid)); // Filter for chats where `toid` equals the current user's `uid`
-      const querySnapshot = await getDocs(q);
-
-      if (!querySnapshot.empty) {
-        querySnapshot.forEach((chatDoc) => {
-          const chatData = chatDoc.data();
-          setMessageNoti(chatData)
-        });
-      } else {
-        console.log("No chats found with `toid` equal to currentUser.uid.");
+        setOrders(prev => [...prev, ...orderedProducts]);
       }
+    };
 
-    }
-    return () => cartdata();
-  }, [currentUser?.uid]);
+    fetchOrderData();
+  }, [currentUser?.uid, notifications]);
 
   return (
     <div className='userprofilehome'>
+      {/* Orders Section */}
       <div className='whatuordered'>
         <h1>What you ordered</h1>
         <div className='uorderedcontainer'>
-        <div className='alreadyordered'>
-            <div className='orderedalready1'>
-              <img src='https://i.pinimg.com/736x/26/85/71/268571d234af58056a4a8590b995db91.jpg' alt='phot'></img>
-              <div>
-                <h1>Lv girl</h1>
-                <p>10:30 PM</p>
-              </div>
-            </div>
-            <button>View</button>
-          </div>
-          <div className='alreadyordered'>
-            <div className='orderedalready1'>
-              <img src='https://i.pinimg.com/736x/26/85/71/268571d234af58056a4a8590b995db91.jpg' alt='phot'></img>
-              <div>
-                <h1>Lv girl</h1>
-                <p>10:30 PM</p>
-              </div>
-            </div>
-            <button>View</button>
-          </div>
-        {notification ? (
-          notification.map((data, index) => (
-            <div className="alreadyordered" key={index}>
-              <div className="orderedalready1">
-                <img
-                  src={data.images[0]}
-                  alt={data.name}
-                />
-                <div>
-                  <h1>{data.productname || data.name}</h1>
-                  <p>{data.time}</p>
+          {orders.length > 0 ? (
+            orders.map((order, index) => (
+              <div className="alreadyordered" key={index}>
+                <div className="orderedalready1">
+                  <img
+                    src={order.images?.[0] || order.productImage || '/default-product.png'}
+                    alt={order.productname || order.productName}
+                  />
+                  <div>
+                    <h1>{order.productname || order.productName}</h1>
+                    <p>{order.timestamp || order.time}</p>
+                  </div>
                 </div>
+                <button>View</button>
               </div>
-              <button>View</button>
-            </div>
-          ))
-        ) : (
-          <p>No orders found.</p>
-        )}
+            ))
+          ) : (
+            <p>No orders found.</p>
+          )}
         </div>
       </div>
-      <div className='yournotis'>
-        <h1>Your notifications</h1>
-        <div className='yournotipfcontainer'>
-          {
-            messagenoti ? (
-              messagenoti.map((data,index) => (
-                <div className='yournotipf' key={index}>
-                  <div className='yournotipf1'>
-                    <img src={data.photo} alt='phot'></img>
-                    <div>
-                      <h1>{data.name}</h1>
-                      <p>replied you</p>
-                    </div>
+
+      {/* Cart Items Section */}
+      <div className='whatuordered'>
+        <h1>Items in Cart</h1>
+        <div className='uorderedcontainer'>
+          {cartItems.length > 0 ? (
+            cartItems.map((item, index) => (
+              <div className="alreadyordered" key={index}>
+                <div className="orderedalready1">
+                  <img
+                    src={item.productImage || '/default-product.png'}
+                    alt={item.productName}
+                  />
+                  <div>
+                    <h1>{item.productName}</h1>
+                    <p>{item.timestamp}</p>
                   </div>
-                  <p className='yournotipfps'>10:30 PM</p>
                 </div>
-              ))
-            ): (
-              <p>No message found.</p>
-            )
-          }
-          <div className='yournotipf'>
-            <div className='yournotipf1'>
-              <img src='https://i.pinimg.com/736x/26/85/71/268571d234af58056a4a8590b995db91.jpg' alt='phot'></img>
-              <div>
-                <h1>Lv girl</h1>
-                <p>replied you</p>
+                <button>View</button>
               </div>
-            </div>
-            <p className='yournotipfps'>10:30 PM</p>
-          </div>
-          <div className='yournotipf'>
-            <div className='yournotipf1'>
-              <img src='https://i.pinimg.com/736x/26/85/71/268571d234af58056a4a8590b995db91.jpg' alt='phot'></img>
-              <div>
-                <h1>Lv girl</h1>
-                <p>replied you</p>
+            ))
+          ) : (
+            <p>No items in cart.</p>
+          )}
+        </div>
+      </div>
+
+      {/* Messages Section */}
+      <div className='whatuordered'>
+        <h1>Your Messages</h1>
+        <div className='yournotipfcontainer'>
+          {messages.length > 0 ? (
+            messages.map((message, index) => (
+              <div className='yournotipf' key={index}>
+                <div className='yournotipf1'>
+                  <img src={message.senderPhoto || '/default-avatar.png'} alt={message.senderName} />
+                  <div>
+                    <h1>{message.senderName}</h1>
+                    <p>{message.text}</p>
+                  </div>
+                </div>
+                <p className='yournotipfps'>{message.timestamp}</p>
               </div>
-            </div>
-            <p className='yournotipfps'>10:30 PM</p>
-          </div>
+            ))
+          ) : (
+            <p>No messages found.</p>
+          )}
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Userprofilehome
+export default Userprofilehome;

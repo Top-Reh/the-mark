@@ -17,13 +17,13 @@ padding:${(props) => (props.$ismobile  === 'true' ? '9px' : '5%')};
 const ExistUser = styled.div`
 padding:${(props) => (props.$ismobile  === 'true' ? '5px' : '15px')};
 width:${(props) => (props.$ismobile  === 'true' ? '70px' : '100%')};
-background:${(props) => (props.selectedchat ? '#d0d0d3' : 'white')};
+background:${(props) => (props.$selectedchat ? '#d0d0d3' : 'white')};
 `;
 
 const SearchUser = styled.div`
 padding:${(props) => (props.$ismobile  === 'true' ? '5px' : '15px')};
 width:${(props) => (props.$ismobile  === 'true' ? '70px' : '100%')};
-background:${(props) => (props.selectedchat ? '#d0d0d3' : 'white')};
+background:${(props) => (props.$selectedchat ? '#d0d0d3' : 'white')};
 `;
 
 const Usernames = styled.div`
@@ -79,34 +79,48 @@ const ChatList = ({setSelectedchat,ismobile,selectedchat,setToid}) => {
     useEffect(() => {
       if (!currentUser) return;
 
-      const q = query(collection(db, 'users'));
-      const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        let userexist = [];
-        querySnapshot.forEach((docs) => {
-          const userData = docs.data();
-          if (userData.uid && userData.uid !== currentUser?.uid) { // ✅ Exclude the current user
-            userexist.push(userData);
-            // if (userData.lastChatWith === currentUser.uid) {
-            //   setNotiMsg((prev) => [
-            //     {
-            //     id: uuid(),
-            //     name: userData.name || 'User',
-            //     text: 'sent you a message',
-            //     image: userData.photoURL,
-            //     time: new Date().toLocaleTimeString(),
-            //     },
-            //     ...prev,
-            //   ]);
-            // }
+      // Fetch admins
+      const adminQuery = query(collection(db, 'admins'));
+      const adminUnsubscribe = onSnapshot(adminQuery, (querySnapshot) => {
+        let adminUsers = [];
+        querySnapshot.forEach((doc) => {
+          const userData = doc.data();
+          if (userData.uid && userData.uid !== currentUser?.uid) {
+            adminUsers.push({
+              ...userData,
+              isAdmin: true // Add flag to identify admin users
+            });
           }
         });
-        // const userList = querySnapshot.docs
-        // .map((doc) => doc.data())
-        // .filter((user) => user.uid !== currentUser.uid);
-        chatDispatch({type: ACTION.SET_EXISTING_CHATS, payload:userexist}); // exist user
+        
+        // Fetch regular users
+        const userQuery = query(collection(db, 'users'));
+        const userUnsubscribe = onSnapshot(userQuery, (querySnapshot) => {
+          let regularUsers = [];
+          querySnapshot.forEach((doc) => {
+            const userData = doc.data();
+            if (userData.uid && userData.uid !== currentUser?.uid) {
+              regularUsers.push({
+                ...userData,
+                isAdmin: false // Add flag to identify regular users
+              });
+            }
+          });
+          
+          // Combine both admin and regular users
+          const allUsers = [...adminUsers, ...regularUsers];
+          chatDispatch({type: ACTION.SET_EXISTING_CHATS, payload: allUsers});
+        });
+
+        return () => {
+          userUnsubscribe();
+        };
       });
-      return () => unsubscribe();
-    },[ currentUser,text ]);
+
+      return () => {
+        adminUnsubscribe();
+      };
+    }, [currentUser]);
 
     const handleSearch = async(e) => {
       e.preventDefault();
@@ -204,33 +218,37 @@ const ChatList = ({setSelectedchat,ismobile,selectedchat,setToid}) => {
         const res = await getDoc(doc(db,"chats",combinedId));
 
         if (!res.exists()) {
-          await setDoc(doc(db,"chats",combinedId),{messages:[]});
+          // Create new chat document with initial empty messages array
+          await setDoc(doc(db,"chats",combinedId), {
+            messages: [],
+            participants: [currentUser?.uid, selectedUser.uid],
+            createdAt: new Date().toLocaleTimeString()
+          });
 
+          // Update user documents with chat reference
           await updateDoc(doc(db, "users", currentUser?.uid), {
-            lastChatWith: selectedUser.uid,
-            timestamp: new Date().toLocaleTimeString(),
+            [`chats.${combinedId}`]: {
+              lastChatWith: selectedUser.uid,
+              timestamp: new Date().toLocaleTimeString(),
+              lastMessage: null
+            }
           });
 
           await updateDoc(doc(db, "users", selectedUser.uid), {
+            [`chats.${combinedId}`]: {
               lastChatWith: currentUser?.uid,
               timestamp: new Date().toLocaleTimeString(),
+              lastMessage: null
+            }
           });
-        } else {
-          await updateDoc(doc(db, "users", currentUser?.uid), {
-            [`chats.${combinedId}.lastChatWith`]: selectedUser.uid,
-            [`chats.${combinedId}.timestamp`]: new Date().toLocaleTimeString(),
-          });
+        }
 
-          await updateDoc(doc(db, "users", selectedUser.uid), {
-              [`chats.${combinedId}.lastChatWith`]: currentUser?.uid,
-            [`chats.${combinedId}.timestamp`]: new Date().toLocaleTimeString(),
-          });
-        };
+        // Always update the chat context with the selected user
         dispatch({ type: "CHANGE_USER", payload: selectedUser });
         setSelectedchat(true);
       } catch (error) {
-        console.log(error)
-      };
+        console.error("Error in handleSelect:", error);
+      }
     };
 
     const handleuseronchange = (e) => {
@@ -260,7 +278,7 @@ const ChatList = ({setSelectedchat,ismobile,selectedchat,setToid}) => {
              <>
                {
                 chatState.searchResults.length > 0 && chatState.searchResults?.map((item,index) => (
-                  <SearchUser key={index} selectedchat={selectedchat} $ismobile={!ismobile} onClick={() => {handleSelect(item)}} className='usersearching rounded-md w-full bg-gray-100 py-5 px-5 mb-3 flex justify-center align-middle gap-3'>
+                  <SearchUser key={index} $selectedchat={selectedchat} $ismobile={!ismobile} onClick={() => {handleSelect(item)}} className='usersearching rounded-md w-full bg-gray-100 py-5 px-5 mb-3 flex justify-center align-middle gap-3'>
                     <img src={item.photoURL} className="avatar w-12 h-12 rounded-full" alt={item.name}/>
                     <div className='chat-title' style={{ display: !ismobile  === 'true' ? 'none' : 'block' }}>
                       <span className="chat-name capitalize font-bold">{item.name}</span>
@@ -273,13 +291,18 @@ const ChatList = ({setSelectedchat,ismobile,selectedchat,setToid}) => {
           }
           {
             chatState.existingChats && chatState.existingChats.map((item,index) => (
-              <ExistUser key={index} selectedchat={selectedchat} $ismobile={!ismobile} onClick={() => handleSelect(item)} className='usersearching rounded-md w-full  py-5 px-5 mb-3 flex justify-center align-middle gap-3'>
+              <ExistUser key={index} $selectedchat={selectedchat} $ismobile={!ismobile} onClick={() => handleSelect(item)} className='usersearching rounded-md w-full py-5 px-5 mb-3 flex justify-center align-middle gap-3'>
                 <img src={item.photoURL} className="avatar w-12 h-12 rounded-full bg-red-400" alt={item.name}/>
-                <div className='chat-title' style={{ display: !ismobile  === 'true' ? 'none' : 'block' }}>
-                  <span className="chat-name capitalize font-bold" >{item.name}</span>
-                  <p >{item.timestamp?.seconds
-                  ? new Date(item.timestamp.seconds * 1000).toLocaleTimeString()
-                  : item.timestamp}</p>
+                <div className='chat-title' style={{ display: !ismobile === 'true' ? 'none' : 'block' }}>
+                  <div className="flex items-center gap-2">
+                    <span className="chat-name capitalize font-bold">{item.name}</span>
+                    {item.isAdmin && (
+                      <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded">Admin</span>
+                    )}
+                  </div>
+                  <p>{item.timestamp?.seconds
+                    ? new Date(item.timestamp.seconds * 1000).toLocaleTimeString()
+                    : item.timestamp}</p>
                 </div>
               </ExistUser>
             ))
@@ -315,153 +338,91 @@ const ChatWindow = ({selectedchat,ismobile,toid}) => {
 
     const scrollref = useRef();
 
-    // useEffect(() => {
-    //   const q = doc(db, "users", currentUser.uid);
-    //   const unsubscribe = onSnapshot(q, async(docSnap) => {
-    //     const userRef = doc(db, "users", currentUser.uid);
-    //     const userSnap = await getDoc(userRef);
-
-    //     if (userSnap.exists()) {
-    //       const userdata = userSnap.data();
-    //       const lastMessage = userSnap.data().lastMessage;
-
-    //       if (lastMessage) {
-    //         setNotiMsg((prev) => [
-    //           ...prev,
-    //           {
-    //             name: lastMessage.name,
-    //             text: lastMessage.text,
-    //             image: userdata.image,
-    //             time: lastMessage.time?.toDate().toLocaleTimeString(),
-    //           }
-    //         ]);
-    //       }
-    //     }
-    //   });
-    //   return () => unsubscribe();
-    // },[text]);
-
-    const handleSend =useCallback (async (e) => {
-      if (!currentUser) {
-        return null; // or loading spinner, etc.
+    const handleSend = useCallback(async (e) => {
+      if (!currentUser || !data?.user) {
+        console.error("No user is logged in or no chat selected");
+        return;
       }
 
       e.preventDefault();
-      if (!currentUser) {
-        console.error("No user is logged in");
-        return;
-      } 
       if (!inputMessage.trim()) return;
       setInputMessage('');
 
-      // const messageData = {
-      //   id: uuid(),
-      //   name: currentUser.displayName || 'User',
-      //   photo: currentUser.photoURL,
-      //   text: inputMessage,
-      //   senderId: currentUser?.uid,
-      //   toid,
-      //   date: new Date().toLocaleTimeString(),
-      // };
+      try {
+        const chatRef = doc(db, "chats", data.chatId);
+        const chatDoc = await getDoc(chatRef);
 
-      // dispatch({ 
-      //   type: "SEND_MESSAGE", 
-      //   payload: {
-      //       message: messageData,
-      //       recipientId: data.user.uid
-      //   }
-      // });
+        const messageData = {
+          id: uuid(),
+          name: currentUser.displayName || 'User',
+          photoURL: currentUser.photoURL,
+          text: inputMessage,
+          senderId: currentUser.uid,
+          toid: data.user.uid,
+          date: new Date().toLocaleTimeString(),
+        };
 
-      if (toid === currentUser?.uid) {
-        const docRefnoti = doc(db, "notifications", currentUser?.uid);
-        const docSnap = await getDoc(docRefnoti);
-
-                  
-        // Add new message and cart item
-        await updateDoc(docRefnoti, {
-          messages: arrayUnion({  
-            type: 'chat',
-            id: text.senderId,
-            name: text.name || 'User',
-            text: 'sent you a message',
-            image: text.photo,
-            time: new Date().toLocaleTimeString(), }),
-            read:false
-        });
-        
-        if (docSnap.exists()) {
-          // Extract messages and cart
-          const data = docSnap.data();
-          setNotiMsg([
-            ...(data.messages || []),
-            ...(data.cart || [])
-          ].reverse());
+        if (chatDoc.exists()) {
+          await updateDoc(chatRef, {
+            messages: arrayUnion(messageData)
+          });
+        } else {
+          await setDoc(chatRef, {
+            messages: [messageData],
+            participants: [currentUser.uid, data.user.uid],
+            createdAt: new Date().toLocaleTimeString()
+          });
         }
-      }
 
-      const chatRef = doc(db, "chats", data.chatId);
-      const chatDoc = await getDoc(chatRef);
+        // Create notification for the recipient
+        const notificationRef = doc(db, "notifications", data.user.uid);
+        const notificationDoc = await getDoc(notificationRef);
 
-      if (chatDoc.exists()) {
-        // If chat exists, update it
-        await updateDoc(chatRef, {
-          messages: arrayUnion({
-            id: uuid(),
-            name: currentUser.displayName || 'User',
-            photo: currentUser.photoURL,
-            text: inputMessage, 
-            senderId: currentUser?.uid,
-            toid,
-            date: new Date().toLocaleTimeString(),
-          })
+        const notificationData = {
+          id: uuid(),
+          type: 'chat',
+          senderId: currentUser.uid,
+          senderName: currentUser.displayName || 'User',
+          senderPhoto: currentUser.photoURL,
+          senderEmail: currentUser.email,
+          text: inputMessage,
+          chatId: data.chatId,
+          timestamp: new Date().toLocaleTimeString(),
+          read: false
+        };
+
+        if (notificationDoc.exists()) {
+          await updateDoc(notificationRef, {
+            messages: arrayUnion(notificationData)
+          });
+        } else {
+          await setDoc(notificationRef, {
+            messages: [notificationData]
+          });
+        }
+
+        // Update last message in user documents
+        await updateDoc(doc(db, "users", currentUser.uid), {
+          [`chats.${data.chatId}.lastMessage`]: {
+            text: inputMessage,
+            senderId: currentUser.uid,
+            timestamp: new Date().toLocaleTimeString()
+          }
         });
-      } else {
-        // If chat does NOT exist, create it first
-        await setDoc(chatRef, {
-          messages: [
-            {
-              id: uuid(),
-              name: currentUser.displayName || 'User',
-              photo: currentUser.photoURL,
-              text: inputMessage,
-              senderId: currentUser?.uid,
-              toid,
-              date: new Date().toLocaleTimeString(),
-            },
-          ],
+
+        await updateDoc(doc(db, "users", data.user.uid), {
+          [`chats.${data.chatId}.lastMessage`]: {
+            text: inputMessage,
+            senderId: currentUser.uid,
+            timestamp: new Date().toLocaleTimeString()
+          }
         });
+
+        scrollref.current?.scrollIntoView({behavior: 'smooth'});
+      } catch (error) {
+        console.error("Error sending message:", error);
       }
-
-      await updateDoc(doc(db, "users", currentUser?.uid), {
-        [`chats.${data.chatId}.lastMessage`]: { name: currentUser.displayName,text: inputMessage, senderId: currentUser?.uid,time:new Date().toLocaleTimeString() },
-        [`chats.${data.chatId}.date`]: new Date().toLocaleTimeString(),
-      });
-      
-      await updateDoc(doc(db, "users", data.user.uid), {
-        [`chats.${data.chatId}.lastMessage`]: {name: data.user.name, text: inputMessage, senderId: data.user.uid,time:new Date().toLocaleTimeString() },
-        [`chats.${data.chatId}.date`]: new Date().toLocaleTimeString(),
-      });
-
-
-      // setNotiMsg((prev) => [
-      //   {
-      //     type: 'chat',
-      //     id: text.senderId,
-      //     name: text.name || 'User',
-      //     text: inputMessage,
-      //     image: text.photo,
-      //     time: new Date().toLocaleTimeString(),
-      //   },
-      //   ...prev,
-      // ]);
-
-      // if (currentUser.uid !== text.senderId) {
-        
-      // }
-
-      scrollref.current?.scrollIntoView({behavior: 'smooth'});
-
-    }, [inputMessage, currentUser, data?.chatId]);
+    }, [inputMessage, currentUser, data]);
 
     const handlekeydown = (e) => {
       if (e.code === 'Enter' && !e.shiftKey) {
@@ -469,86 +430,55 @@ const ChatWindow = ({selectedchat,ismobile,toid}) => {
       }
     }
 
-
-
     useEffect(() => {
-      if (!data.chatId) return;
+      if (!data?.chatId) return;
     
       const q = doc(db, "chats", data.chatId);
       const unsubscribe = onSnapshot(q, (docSnap) => {
         if (docSnap.exists()) {
           setText(docSnap.data().messages || []);
-          // id: uuid(),
-          //     name: currentUser.displayName || 'User',
-          //     photo: currentUser.photoURL,
-          //     text: inputMessage,
-          //     senderId: currentUser.uid,
-          //     date: serverTimestamp(),
-                // docSnap.data().messages.map(e => {
-                //   if (e.senderId !== currentUser.uid) {
-                //     setNotiMsg((prev) => [
-                //       {
-                //         type: 'chat',
-                //         id: e.senderId,
-                //         toid: data.chatId,
-                //         name: e.name || 'User',
-                //         text: e.text,
-                //         image: e.photo,
-                //         time: e.date?.toDate().toLocaleTimeString(),
-                //       },
-                //       ...prev,
-                //     ]);
-                //   }
-                // })
+          scrollref.current?.scrollIntoView({behavior: 'smooth'});
         }
       });
-      scrollref.current?.scrollIntoView({behavior: 'smooth'});
-      return () => unsubscribe(); //  Fix return statement
-    }, [data?.chatId,currentUser]);
-  
-    
+      return () => unsubscribe();
+    }, [data?.chatId]);
 
-  return (
-    <Chatcomponent className="chat-window pb-7 pl-7 pr-7" $ismobile={!ismobile}>
-      {
-  selectedchat === true ? (
-    <>
-      <h2 className='text-black border-solid border-b py-3 capitalize text-3xl'>{data.user.name}</h2>
+    return (
+      <Chatcomponent className="chat-window pb-7 pl-7 pr-7" $ismobile={!ismobile}>
+        {selectedchat && data?.user ? (
+          <>
+            <h2 className='text-black border-solid border-b py-3 capitalize text-3xl'>{data.user.name}</h2>
 
-      <Message className="messages" id="chat-container">
-        {
-          text?.map((item, index) => (
-            <div key={index} className={item.senderId === currentUser?.uid ? `sentMessage ${style.messageall}` : `${style.messageall} receivedMessage `}>
-              <img src={item.photoURL} alt={item.name} className='w-10 h-10 border-gray border-solid border rounded-full overflow-hidden object-cover object-center' />
-              <div>
-                <p className='text-gray-600 text-xs capitalize'>{item.name}</p>
-                <p className={`px-4 py-2 rounded-md w-auto ${item.senderId === currentUser?.uid ? ` ${style.messageall} ${style.senttext}` : ` ${style.messageall} ${style.receivedtext}`}`}>{item.text}</p>
-              </div>
+            <Message className="messages" id="chat-container">
+              {text?.map((item, index) => (
+                <div key={index} className={item.senderId === currentUser?.uid ? `sentMessage ${style.messageall}` : `${style.messageall} receivedMessage`}>
+                  <img src={item.photoURL} alt={item.name} className='w-10 h-10 border-gray border-solid border rounded-full overflow-hidden object-cover object-center' />
+                  <div>
+                    <p className='text-gray-600 text-xs capitalize'>{item.name}</p>
+                    <p className={`px-4 py-2 rounded-md w-auto ${item.senderId === currentUser?.uid ? style.senttext : style.receivedtext}`}>{item.text}</p>
+                  </div>
+                </div>
+              ))}
+              <span ref={scrollref}></span>
+            </Message>
+
+            <div className="message-input">
+              <input
+                type="text"
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                placeholder="Type a message..."
+                onKeyDown={handlekeydown}
+                className='outline-none'
+              />
+              <button onClick={handleSend}><i className="bi bi-send-fill"></i></button>
             </div>
-          ))
-        }
-        <span ref={scrollref}></span>
-      </Message>
-
-      <div className="message-input">
-        <input
-          type="text"
-          value={inputMessage}
-          onChange={(e) => setInputMessage(e.target.value)}
-          placeholder="Type a message..."
-          onKeyDown={ handlekeydown}
-          className='outline-none'
-        />
-        <button onClick={handleSend}><i className="bi bi-send-fill"></i></button>
-      </div>
-    </>
-  ) : 
-    <p className='text-5xl flex w-full h-full justify-center align-middle items-center text-black'>Choose one chat</p>
-}
-
-      
-    </Chatcomponent>
-  );
+          </>
+        ) : (
+          <p className='text-5xl flex w-full h-full justify-center align-middle items-center text-black'>Choose one chat</p>
+        )}
+      </Chatcomponent>
+    );
 };
 
 // ChatApp - The main app that holds the chat functionality

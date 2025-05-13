@@ -8,13 +8,15 @@ import { ChatContext } from './ChatContext'
 export const CartContext = createContext();
 
 const CartProvider = ({ children }) => {
-  const [notimsg,setNotiMsg] = useState([]);
+  const [notimsg, setNotiMsg] = useState([]);
   const {currentUser} = useContext(AuthContext);
   const {data} = useContext(ChatContext);
   const [cart, setCart] = useState([]);
 
   // Add product to cart
-  const addToCart = useCallback((product) => {
+  const addToCart = useCallback(async (product) => {
+    if (!currentUser?.uid) return;
+
     setCart((prevCart) => {
       const existingItem = prevCart.find((item) => item.id === product.id);
     
@@ -40,34 +42,76 @@ const CartProvider = ({ children }) => {
         quantity: 1 
       }];
     });
-  }, []);
+
+    // Create notification for the seller
+    try {
+      const notificationRef = doc(db, "notifications", product.seller.uid);
+      const notificationDoc = await getDoc(notificationRef);
+
+      const notificationData = {
+        id: uuid(),
+        type: 'cart',
+        productId: product.id,
+        productName: product.name,
+        buyerId: currentUser.uid,
+        buyerName: currentUser.displayName || 'User',
+        buyerPhoto: currentUser.photoURL,
+        action: 'added to cart',
+        timestamp: new Date().toLocaleTimeString(),
+        read: false
+      };
+
+      if (notificationDoc.exists()) {
+        await updateDoc(notificationRef, {
+          messages: arrayUnion(notificationData)
+        });
+      } else {
+        await setDoc(notificationRef, {
+          messages: [notificationData]
+        });
+      }
+    } catch (error) {
+      console.error("Error creating cart notification:", error);
+    }
+  }, [currentUser]);
 
   // Remove product from cart
-  const removeFromCart = useCallback((id) => {
-    setCart((prevCart) => prevCart.filter((item) => item.id !== id));
-  }, []);
+  const removeFromCart = useCallback(async (product) => {
+    if (!currentUser?.uid) return;
 
-//   const markAsRead = useCallback(async (notificationId) => {
-//     if (!currentUser?.uid) return;
-    
-//     try {
-//         const notificationRef = doc(db, "notifications", currentUser.uid);
-//         const notificationDoc = await getDoc(notificationRef);
-        
-//         if (notificationDoc.exists()) {
-//             const messages = notificationDoc.data().messages || [];
-//             const updatedMessages = messages.map(msg => 
-//                 msg.id === notificationId ? { ...msg, read: true } : msg
-//             );
-            
-//             await updateDoc(notificationRef, {
-//                 messages: updatedMessages
-//             });
-//         }
-//     } catch (error) {
-//         console.error("Error marking notification as read:", error);
-//     }
-// }, [currentUser]);
+    setCart((prevCart) => prevCart.filter((item) => item.id !== product.id));
+
+    // Create notification for the seller
+    try {
+      const notificationRef = doc(db, "notifications", product.seller.uid);
+      const notificationDoc = await getDoc(notificationRef);
+
+      const notificationData = {
+        id: uuid(),
+        type: 'cart',
+        productId: product.id,
+        productName: product.name,
+        buyerId: currentUser.uid,
+        buyerName: currentUser.displayName || 'User',
+        buyerPhoto: currentUser.photoURL,
+        action: 'removed from cart',
+        timestamp: new Date().toLocaleTimeString(),
+        read: false
+      };
+
+      if (notificationDoc.exists()) {
+        await updateDoc(notificationRef, {
+          messages: arrayUnion(notificationData)
+        });
+      } else {
+        await setDoc(notificationRef, {
+          messages: [notificationData]
+        });
+      }
+    } catch (error) {
+      console.error("Error creating cart notification:", error);
+    }
+  }, [currentUser]);
 
   // Persist cart to localStorage
   useEffect(() => {
@@ -79,7 +123,7 @@ const CartProvider = ({ children }) => {
     } catch (error) {
       console.error('Error loading cart from localStorage:', error);
     }
-  }, []); // Runs only once on component mount
+  }, []);
 
   useEffect(() => {
     try {
@@ -87,54 +131,7 @@ const CartProvider = ({ children }) => {
     } catch (error) {
       console.error('Error saving cart to localStorage:', error);
     }
-  }, [cart]); // Sync cart to localStorage whenever it changes
-
-  // Modify your useEffect for notifications
-// useEffect(() => {
-//   if (!currentUser?.uid) return;
-
-//   const notificationsRef = doc(db, "notifications", currentUser.uid);
-//   const unsubscribe = onSnapshot(notificationsRef, (docSnap) => {
-//       if (docSnap.exists()) {
-//           const notifications = docSnap.data().messages || [];
-          
-//           // Process notifications with proper typing
-//           const processedNotifications = notifications.map(notification => {
-//               if (notification.type === 'chat') {
-//                   return {
-//                       id: notification.id,
-//                       type: 'chat',
-//                       name: notification.senderName,
-//                       text: notification.text,
-//                       image: notification.senderPhoto,
-//                       time: notification.timestamp?.toDate().toLocaleTimeString(),
-//                       chatId: notification.chatId,
-//                       read: notification.read || false
-//                   };
-//               } else {
-//                   // Handle cart notifications
-//                   return notification;
-//               }
-//           });
-
-//           // Filter out notifications from current chat
-//           const filteredNotifications = processedNotifications.filter(
-//               notification => notification.type !== 'chat' || 
-//                             notification.chatId !== data?.chatId
-//           );
-
-//           // Sort by timestamp (newest first)
-//           const sortedNotifications = [...filteredNotifications].sort((a, b) => {
-//               return new Date(b.timestamp?.toDate()) - new Date(a.timestamp?.toDate());
-//           });
-
-//           setNotiMsg(sortedNotifications);
-//       }
-//   });
-
-//   return () => unsubscribe();
-// }, [currentUser, data?.chatId]);
-  
+  }, [cart]);
 
   return (
     <CartContext.Provider
