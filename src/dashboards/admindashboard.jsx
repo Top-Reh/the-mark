@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
-import UploadProduct from '../ProductUpload';
+import UploadProduct from './ProductUpload';
 import Logoutbtn from '../components/logoutbtn';
 
 const Admindashboard = () => {

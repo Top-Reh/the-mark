@@ -8,7 +8,7 @@ import CartProvider from './context/cartcontext';
 import Menu from './menu';
 import Chats from './chats';
 import Cart from './cart';
-import UploadProduct from './ProductUpload';
+import UploadProduct from './dashboards/ProductUpload';
 import Profile from './Profile';
 import Home from './home';
 import Shop from './shop';

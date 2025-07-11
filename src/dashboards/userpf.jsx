@@ -3,7 +3,7 @@ import Logoutbtn from "../components/logoutbtn";
 import { auth, db } from "../firebase";
 import {useAuthState} from 'react-firebase-hooks/auth'
 import { Link } from 'react-router-dom';
-import ProductUpload from '../ProductUpload';
+import ProductUpload from './ProductUpload';
 import Userprofilehome from './userprofilehome';
 import { ChevronDown } from 'lucide-react';
 import { collection, getDocs, query, where } from 'firebase/firestore';

@@ -1,16 +1,18 @@
 import React, { useContext, useEffect, useState, useRef } from "react";
-import { CartContext } from './context/cartcontext';
-import { db } from './firebase';
+import { CartContext } from '../context/cartcontext';
+import { db, storage } from '../firebase';
 import { collection, doc, setDoc, onSnapshot, query, updateDoc, arrayUnion } from 'firebase/firestore'; 
-import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
-import { AuthContext } from "./context/AuthContext";
+import { deleteObject, getDownloadURL, ref, uploadBytes } from '@firebase/storage';
+import { AuthContext } from "../context/AuthContext";
 import { time } from "framer-motion";
+import { image } from "framer-motion/client";
 
 const UploadProduct = () => {
   const { currentUser } = useContext(AuthContext);
   const { setNotiMsg } = useContext(CartContext);
   const [images, setImages] = useState([]);
   const [dragActive, setDragActive] = useState(false);
+  const [todownloadImage, setTodownloadImage] = useState({});
   const fileInputRef = useRef(null);
 
   const [product, setProduct] = useState({
@@ -52,12 +54,22 @@ const UploadProduct = () => {
       alert("Price and Stock must be valid numbers.");
       return;
     }
-  
+
+    const timestamp = new Date().getTime();
+    const fileRef = ref(storage, `products/${timestamp}-${todownloadImage.name}`);
+    await uploadBytes(fileRef, todownloadImage.todownload);
+    const downloadUrl = await getDownloadURL(fileRef);
+    console.log('downloadUrl : ',downloadUrl);
+    setProduct((prev) => ({
+      ...prev,
+      images: [...prev.images, downloadUrl]
+    }));
+      
     if (!product.name || !product.description || product.images.length === 0) {
       alert("Please fill out all required fields.");
       return;
     }
-  
+
     try {
       const docRef = doc(collection(db, "products"));
   
@@ -132,47 +144,24 @@ const UploadProduct = () => {
     const uploadedImages = [];
     
     try {
-      for (const file of files) {
-        if (!file.type.startsWith('image/')) continue;
-        
-        const imgurUrl = await uploadToImgur(file);
-        uploadedImages.push({
-          name: file.name,
-          url: imgurUrl
-        });
-      }
+      let url = window.URL.createObjectURL(files[0]);
+      uploadedImages.push({
+        name: files[0].name,
+        url: url,
+        todownload: files[0]
+      });
+      console.log('uploadedImages : ',uploadedImages);
       
       setImages(prev => [...prev, ...uploadedImages]);
-      setProduct(prev => ({
-        ...prev,
-        images: [...prev.images, ...uploadedImages.map(img => img.url)]
-      }));
+      setTodownloadImage({
+        name: files[0].name,
+        todownload: files[0]}
+      )
     } catch (error) {
       console.error("Image upload failed:", error);
       alert("Some images failed to upload. Please try again.");
     }
   };
-
-  const uploadToImgur = async (file) => {
-    const formData = new FormData();
-    formData.append("image", file);
-  
-    const response = await fetch("https://api.imgur.com/3/image", {
-      method: "POST",
-      headers: {
-        Authorization: "Client-ID 593c6524c4e995d", // Replace with your actual Client ID
-      },
-      body: formData,
-    });
-  
-    const data = await response.json();
-    console.log('Imgur upload response: ', data);
-  
-    if (!data.success) throw new Error("Imgur upload failed");
-  
-    return data.data.link; // ✅ this is the public image URL
-  };
-  
 
   const onfileselect = async(e) => {
     const files = Array.from(e.target.files);
@@ -218,37 +207,6 @@ const UploadProduct = () => {
     const files = Array.from(e.dataTransfer.files);
     console.log('image onDrop : ',files);
     await handleImageUpload(files);
-
-    // const newImages = [];
-    // for (let i = 0; i < files.length; i++) {
-    //   if (files[i].type.split('/')[0] !== 'image') continue;
-    //   if (!images.some(e => e.name === files[i].name)) {
-    //     const imageObject = {
-    //       name: files[i].name,
-    //       url: URL.createObjectURL(files[i]),
-    //     };
-    //     console.log('imageObject : ',imageObject);
-    //     newImages.push(imageObject);
-    //   }
-    // };
-    // console.log('newImages : ',newImages);
-    // setImages((prev) => [...prev, ...newImages]);
-    // setProduct((prev) => ({ ...prev, images: [...prev.images,  ...newImages.map((img) => img.url)] }));
-    // const uploadedImages = [];
-
-    // for (let i = 0; i < files.length; i++) {
-    //   const file = files[i];
-    //   if (file.type.startsWith('image/')) {
-    //     const url = await uploadToImgur(file);
-    //     uploadedImages.push({ name: file.name, url });
-    //   }
-    // }
-
-    // setImages((prev) => [...prev, ...uploadedImages]);
-    // setProduct((prev) => ({
-    //   ...prev,
-    //   images: [...prev.images, ...uploadedImages.map((img) => img.url)],
-    // }));
   }
 
   useEffect(() => {
