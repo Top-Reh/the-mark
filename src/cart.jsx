@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { CartContext } from './context/cartcontext';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, onSnapshot, query, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import { AuthContext } from './context/AuthContext';
 
@@ -63,27 +63,32 @@ const Cart = () => {
   };
 
   useEffect(() => {
-    if (!currentUser) return;
-    let isMounted = true;
-      const cartdata = async () => {
-        const productRef = doc(db, "users",currentUser?.uid);
-        const productSnap = await getDoc(productRef);
-        if (isMounted && productSnap.exists()) {
-          const orderedProducts = productSnap.data().orderedProducts || [];
-          setCartData(orderedProducts);
-  
-          // Calculate total price
-          const totalPrice = orderedProducts.reduce(
-            (sum, item) => sum + item.price * (item.quantity || 1),
-            0
-          ) + 1;
-          setTotal(totalPrice);}
-      };
-      cartdata();
-      return () => {
-        isMounted = false; // Cleanup
-      };
-  },[currentUser?.uid]);
+  if (!currentUser?.uid) return;
+
+  const userRef = doc(db, "users", currentUser.uid);
+
+  const unsubscribe = onSnapshot(userRef, (docSnap) => {
+    if (docSnap.exists()) {
+      const orderedProducts = docSnap.data().orderedProducts || [];
+      setCartData(orderedProducts);
+
+      // Calculate total price
+      const totalPrice =
+        orderedProducts.reduce(
+          (sum, item) => sum + item.price * (item.quantity || 1),
+          0
+        ) + 1;
+      setTotal(totalPrice);
+    } else {
+      console.warn("User document does not exist.");
+    }
+  }, (error) => {
+    console.error("Error listening to orderedProducts:", error);
+  });
+
+  return () => unsubscribe(); // Cleanup on unmount
+}, [currentUser?.uid]);
+
 
   return (
     <div className="cart">

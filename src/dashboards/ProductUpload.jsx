@@ -72,6 +72,16 @@ const UploadProduct = () => {
 
     try {
       const docRef = doc(collection(db, "products"));
+
+      const productWithTime = {
+        ...product,
+        time: new Date().toLocaleTimeString(), // Add the current timestamp to the productData
+      };
+  
+      // Update user's cart with the modified product data (including time)
+      await updateDoc(doc(db, "admins", currentUser?.uid), {
+        Products: arrayUnion(productWithTime),
+      });
   
       const newProduct = {
         ...product,

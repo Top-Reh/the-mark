@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, onSnapshot, query, where } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { db } from './firebase';
@@ -10,31 +10,23 @@ const Brandspage = () => {
     const [existbrands, setExistBrands] = useState([]);
 
     useEffect(() => {
-        const cartdata = async () => {
-            const adminRef = doc(db, "admins",brandId);
-            const adminSnap = await getDoc(adminRef);
-            if (adminSnap.exists()) {
-                const admindata = adminSnap.data() || [];
-                setAdmin(admindata);
-                console.log('admin data : ' ,admindata);
-            };
-            const chatsRef = collection(db, "products");
-            const q = query(chatsRef, where("seller.uid", "==", brandId)); // Filter for chats where `toid` equals the current user's `uid`
-            const querySnapshot = await getDocs(q);
-        
-            if (!querySnapshot.empty) {
-                querySnapshot.forEach((chatDoc) => {
-                const chatData = chatDoc.data();
-                setExistBrands(chatData);
-                console.log('exist brands : ',chatData);
-                });
-            } else {
-                console.log("No products found with `brandId` equal to brandId.uid.");
-            }
-            }
-            console.log('state products : ',existbrands);
-        return () => cartdata();
-    }, [brandId]);  
+    
+      const userRef = doc(db, "admins", brandId);
+    
+      const unsubscribe = onSnapshot(userRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const admindata = docSnap.data() || [];
+            setAdmin(admindata);
+          setExistBrands(admindata.Products || []);
+        } else {
+          console.warn("admin document does not exist.");
+        }
+      }, (error) => {
+        console.error("Error listening to Products:", error);
+      });
+    
+      return () => unsubscribe(); // Cleanup on unmount
+    }, [brandId]);
 
   return (
     <div className='brandspage w-full grid gap-6 pt-16' >
@@ -65,13 +57,6 @@ const Brandspage = () => {
                     <img key={index} src={data.images[0]} alt={data.name} className='w-full h-full rounded-lg object-cover object-center'></img>
                 )
             ))}
-            <img src='https://i.pinimg.com/736x/77/7b/36/777b3622b81a9030398529e4de55684e.jpg' alt='lvgirl' className='w-full h-full rounded-lg object-cover object-center'></img>
-            <img src='https://i.pinimg.com/736x/77/7b/36/777b3622b81a9030398529e4de55684e.jpg' alt='lvgirl' className='w-full h-full rounded-lg object-cover object-center'></img>
-            <img src='https://i.pinimg.com/736x/77/7b/36/777b3622b81a9030398529e4de55684e.jpg' alt='lvgirl' className='w-full h-full rounded-lg object-cover object-center'></img>
-            <img src='https://i.pinimg.com/736x/77/7b/36/777b3622b81a9030398529e4de55684e.jpg' alt='lvgirl' className='w-full h-full rounded-lg object-cover object-center'></img>
-            <img src='https://i.pinimg.com/736x/77/7b/36/777b3622b81a9030398529e4de55684e.jpg' alt='lvgirl' className='w-full h-full rounded-lg object-cover object-center'></img>
-            <img src='https://i.pinimg.com/736x/77/7b/36/777b3622b81a9030398529e4de55684e.jpg' alt='lvgirl' className='w-full h-full rounded-lg object-cover object-center'></img>
-            <img src='https://i.pinimg.com/736x/77/7b/36/777b3622b81a9030398529e4de55684e.jpg' alt='lvgirl' className='w-full h-full rounded-lg object-cover object-center'></img>
         </div>
     </div>
   )
